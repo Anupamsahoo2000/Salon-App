@@ -6,6 +6,7 @@ const StaffProfile = require("./staffProfileModel");
 const Service = require("./serviceModel");
 const StaffService = require("./staffServiceModel");
 const Appointment = require("./appointmentModel");
+const Review = require("./reviewModel");
 
 // ------------------------------------
 // ✅ Associations Setup
@@ -64,14 +65,23 @@ Appointment.belongsTo(Service, {
   as: "service",
 });
 
+// Review Associations
+Review.belongsTo(User, { foreignKey: "customerId" });
+Review.belongsTo(Service, { foreignKey: "serviceId" });
+Review.belongsTo(Appointment, { foreignKey: "appointmentId" });
+
+User.hasMany(Review, { foreignKey: "customerId" });
+Service.hasMany(Review, { foreignKey: "serviceId" });
+Appointment.hasOne(Review, { foreignKey: "appointmentId" });
+
 // ------------------------------------
 // ✅ Export Everything from One Place
 // ------------------------------------
 module.exports = {
-  sequelize,
   User,
   StaffProfile,
   Service,
   StaffService,
   Appointment,
+  Review,
 };

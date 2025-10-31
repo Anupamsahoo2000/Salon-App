@@ -1,8 +1,6 @@
 const sequelize = require("../config/db");
 const { DataTypes } = require("sequelize");
 
-
-
 const Appointment = sequelize.define("Appointment", {
   id: {
     type: DataTypes.UUID,
@@ -17,10 +15,14 @@ const Appointment = sequelize.define("Appointment", {
     type: DataTypes.ENUM("booked", "cancelled", "completed"),
     defaultValue: "booked",
   },
+  paymentStatus: {
+    type: DataTypes.ENUM("pending", "success", "failed", "cancelled"),
+    defaultValue: "pending",
+  },
+  paymentOrderId: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
 });
-
-
-
-
 
 module.exports = Appointment;

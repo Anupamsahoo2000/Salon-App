@@ -79,6 +79,12 @@ const bookAppointment = async (req, res) => {
     const { staffProfileId, serviceId, appointmentDate } = req.body;
     const customerId = req.user.id;
 
+    if (req.user.role !== "customer") {
+      return res
+        .status(403)
+        .json({ message: "Access denied. Customers only." });
+    }
+
     const service = await Service.findByPk(serviceId);
     if (!service) return res.status(404).json({ message: "Service not found" });
 
@@ -134,6 +140,12 @@ const bookAppointment = async (req, res) => {
 // ✅ View My Appointments
 const getMyAppointments = async (req, res) => {
   try {
+    if (req.user.role !== "customer") {
+      return res
+        .status(403)
+        .json({ message: "Access denied. Customers only." });
+    }
+
     const appointments = await Appointment.findAll({
       where: { customerId: req.user.id },
       include: [
@@ -156,6 +168,12 @@ const cancelAppointment = async (req, res) => {
   try {
     const { appointmentId } = req.params;
     const customerId = req.user.id;
+
+    if (req.user.role !== "customer") {
+      return res
+        .status(403)
+        .json({ message: "Access denied. Customers only." });
+    }
 
     const appointment = await Appointment.findOne({
       where: { id: appointmentId, customerId, status: "booked" },
@@ -203,6 +221,12 @@ const rescheduleAppointment = async (req, res) => {
     const { appointmentId } = req.params;
     const { newAppointmentDate } = req.body;
     const customerId = req.user.id;
+
+    if (req.user.role !== "customer") {
+      return res
+        .status(403)
+        .json({ message: "Access denied. Customers only." });
+    }
 
     if (!newAppointmentDate)
       return res.status(400).json({ message: "New appointment date required" });
