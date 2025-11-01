@@ -45,10 +45,17 @@ const assignServicesToStaff = async (req, res) => {
 // Get Staff with Assigned Services
 const getAllStaff = async (req, res) => {
   try {
+    // NOTE: Associations in models/index.js use aliases: StaffProfile.belongsTo(User, { as: 'user' })
+    // and StaffProfile.belongsToMany(Service, { as: 'services' }). We must provide the same
+    // `as` values when eager-loading via `include` so Sequelize can resolve the associations.
     const staff = await StaffProfile.findAll({
       include: [
-        { model: User, attributes: ["id", "name", "email", "role"] },
-        { model: Service },
+        {
+          model: User,
+          as: "user",
+          attributes: ["id", "name", "email", "role"],
+        },
+        { model: Service, as: "services" },
       ],
     });
 

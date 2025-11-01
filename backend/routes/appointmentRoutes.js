@@ -11,8 +11,8 @@ const {
 const router = express.Router();
 
 router.get("/slots", getAvailableSlots);
-router.post("/", authenticate, bookAppointment);
-router.get("/", authenticate, getMyAppointments);
+router.post("/book", authenticate, bookAppointment);
+router.get("/my-appointments", authenticate, getMyAppointments);
 router.patch("/reschedule/:id", authenticate, rescheduleAppointment);
 router.patch("/cancel/:id", authenticate, cancelAppointment);
 

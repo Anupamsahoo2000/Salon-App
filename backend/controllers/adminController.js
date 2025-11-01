@@ -9,7 +9,7 @@ const getCustomers = async (req, res) => {
 
     const customers = await User.findAll({
       where: { role: "customer" },
-      attributes: ["id", "name", "email", "phone", "createdAt"],
+      attributes: ["id", "name", "email", "phone", "role", "createdAt"],
     });
     res.status(200).json({ customers });
   } catch (error) {
@@ -45,14 +45,17 @@ const getAllAppointments = async (req, res) => {
       return res.status(403).json({ message: "Access denied. Admins only." });
     }
 
+    // Note: associations in models/index.js use aliases. Use the same `as` values
+    // when eager-loading so Sequelize can resolve the associations.
     const appointments = await Appointment.findAll({
       include: [
         { model: User, as: "customer", attributes: ["name", "email"] },
         {
           model: StaffProfile,
-          include: [{ model: User, attributes: ["name"] }],
+          as: "staff",
+          include: [{ model: User, as: "user", attributes: ["name"] }],
         },
-        { model: Service, attributes: ["name"] },
+        { model: Service, as: "service", attributes: ["name"] },
       ],
       order: [["appointmentDate", "DESC"]],
     });

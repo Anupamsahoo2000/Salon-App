@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Salon Admin Dashboard</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  </head>
+  <body class="bg-gray-100">
+    <!-- NAV -->
+    <nav class="bg-white shadow">
+      <div
+        class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center"
+      >
+        <h1 class="text-xl font-bold text-indigo-600">Salon Admin Panel</h1>
+        <button id="logoutBtn" class="text-red-500 font-medium hover:underline">
+          Logout
+        </button>
+      </div>
+    </nav>
+
+    <main class="max-w-7xl mx-auto p-6">
+      <!-- Sections Tabs -->
+      <div class="flex gap-4 mb-6">
+        <button
+          id="tab-users"
+          class="admin-tab px-4 py-2 bg-indigo-600 text-white rounded-lg shadow"
+        >
+          Users
+        </button>
+        <button
+          id="tab-appointments"
+          class="admin-tab px-4 py-2 bg-gray-300 rounded-lg shadow"
+        >
+          Appointments
+        </button>
+      </div>
+
+      <!-- USERS SECTION -->
+      <section id="admin-users" class="section bg-white p-6 rounded-lg shadow">
+        <h2 class="text-lg font-semibold mb-4">Customer Management</h2>
+
+        <table class="w-full text-sm">
+          <thead class="bg-gray-200">
+            <tr>
+              <th class="p-2 text-left">Name</th>
+              <th class="p-2 text-left">Email</th>
+              <th class="p-2 text-left">Role</th>
+              <th class="p-2 text-center">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="users-table"></tbody>
+        </table>
+      </section>
+
+      <!-- APPOINTMENTS SECTION -->
+      <section
+        id="admin-appointments"
+        class="section hidden bg-white p-6 rounded-lg shadow"
+      >
+        <h2 class="text-lg font-semibold mb-4">Appointment Management</h2>
+
+        <table class="w-full text-sm">
+          <thead class="bg-gray-200">
+            <tr>
+              <th class="p-2 text-left">Customer</th>
+              <th class="p-2 text-left">Service</th>
+              <th class="p-2 text-left">Staff</th>
+              <th class="p-2 text-left">Date & Time</th>
+              <th class="p-2 text-left">Status</th>
+              <th class="p-2 text-center">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="appointments-table"></tbody>
+        </table>
+      </section>
+    </main>
+
+    <script type="module" src="./js/admin.js"></script>
+  </body>
+</html>

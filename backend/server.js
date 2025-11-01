@@ -1,5 +1,6 @@
 const express = require("express");
 const app = express();
+const cors = require("cors");
 const db = require("./config/db");
 require("dotenv").config();
 require("./cron/reminder");
@@ -8,6 +9,7 @@ const PORT = process.env.PORT || 3000;
 
 // Middleware
 app.use(express.json());
+app.use(cors());
 
 // Routes
 const authRoutes = require("./routes/authRoutes");
@@ -23,7 +25,7 @@ app.use("/auth", authRoutes);
 app.use("/user", userRoutes);
 app.use("/services", serviceRoutes);
 app.use("/staff", staffRoutes);
-app.use("/appointment", appointmentRoutes);
+app.use("/appointments", appointmentRoutes);
 app.use("/payment", paymentRoutes);
 app.use("/reviews", reviewRoutes);
 app.use("/admin", adminRoutes);

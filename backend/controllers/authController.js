@@ -58,7 +58,7 @@ const login = async (req, res) => {
       { userId: user.id, role: user.role },
       process.env.JWT_SECRET || "supersecret",
       {
-        expiresIn: process.env.JWT_EXPIRES_IN || "24h",
+        expiresIn: process.env.JWT_EXPIRES_IN || "1d",
       }
     );
 
@@ -69,6 +69,7 @@ const login = async (req, res) => {
         id: user.id,
         name: user.name,
         email: user.email,
+        role: user.role,
       },
     });
   } catch (error) {
