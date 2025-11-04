@@ -5,6 +5,7 @@ const {
   getAllAppointments,
   updateAppointmentStatus,
   deleteAppointment,
+  getAllPayments,
 } = require("../controllers/adminController");
 
 const authenticate = require("../middleware/authMiddleware");
@@ -13,6 +14,8 @@ const router = express.Router();
 
 // ✅ User Management
 router.get("/customers", authenticate, getCustomers);
+router.get("/payments", authenticate, getAllPayments);
+
 router.put("/customers/:customerId", authenticate, updateCustomer);
 
 // ✅ Appointment Management

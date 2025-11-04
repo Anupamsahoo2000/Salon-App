@@ -1,4 +1,10 @@
-const { User, Appointment, Service, StaffProfile } = require("../models");
+const {
+  User,
+  Appointment,
+  Service,
+  StaffProfile,
+  Payment,
+} = require("../models");
 
 // ✅ Get All Customers
 const getCustomers = async (req, res) => {
@@ -111,10 +117,27 @@ const deleteAppointment = async (req, res) => {
   }
 };
 
+const getAllPayments = async (req, res) => {
+  try {
+    if (req.user.role !== "admin")
+      return res.status(403).json({ message: "Admins only" });
+
+    const payments = await Payment.findAll({
+      order: [["createdAt", "DESC"]],
+    });
+
+    res.status(200).json({ payments });
+  } catch (error) {
+    console.error("Admin Payments Error:", error);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+};
+
 module.exports = {
   getCustomers,
   updateCustomer,
   getAllAppointments,
   updateAppointmentStatus,
   deleteAppointment,
+  getAllPayments,
 };

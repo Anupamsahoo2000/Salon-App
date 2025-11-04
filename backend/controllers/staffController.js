@@ -1,9 +1,8 @@
-const { User, Service, StaffProfile, StaffService } = require("../models");
+const { User, Service, StaffProfile, Appointment } = require("../models");
 
-// Create Staff Profile
 const createStaffProfile = async (req, res) => {
   try {
-    const { userId, specialization, workingHours } = req.body;
+    const { userId, specialization } = req.body;
 
     const user = await User.findByPk(userId);
     if (!user || user.role !== "staff")
@@ -12,7 +11,14 @@ const createStaffProfile = async (req, res) => {
     const profile = await StaffProfile.create({
       userId,
       specialization,
-      workingHours,
+      workingHours: {
+        monday: "10:00-18:00",
+        tuesday: "10:00-18:00",
+        wednesday: "10:00-18:00",
+        thursday: "10:00-18:00",
+        friday: "10:00-18:00",
+        saturday: "10:00-18:00",
+      },
     });
 
     res.status(201).json({ message: "Staff profile created", profile });
@@ -25,6 +31,11 @@ const createStaffProfile = async (req, res) => {
 // Assign services to staff
 const assignServicesToStaff = async (req, res) => {
   try {
+    if (!req.user || req.user.role !== "admin") {
+      res.status(403).json({ message: "Access denied: Admins only" });
+      return false;
+    }
+
     const { staffProfileId, serviceIds } = req.body;
 
     const staffProfile = await StaffProfile.findByPk(staffProfileId);
@@ -45,24 +56,38 @@ const assignServicesToStaff = async (req, res) => {
 // Get Staff with Assigned Services
 const getAllStaff = async (req, res) => {
   try {
-    // NOTE: Associations in models/index.js use aliases: StaffProfile.belongsTo(User, { as: 'user' })
-    // and StaffProfile.belongsToMany(Service, { as: 'services' }). We must provide the same
-    // `as` values when eager-loading via `include` so Sequelize can resolve the associations.
-    const staff = await StaffProfile.findAll({
+    const staffProfiles = await StaffProfile.findAll({
       include: [
         {
-          model: User,
-          as: "user",
+          association: "user",
           attributes: ["id", "name", "email", "role"],
+          where: { role: "staff" }, // ✅ Only staff users
         },
-        { model: Service, as: "services" },
+        {
+          association: "services",
+          attributes: ["id", "name"],
+          through: { attributes: [] },
+        },
+        {
+          association: "staffAppointments",
+          include: [
+            {
+              association: "service",
+              attributes: ["id", "name"],
+            },
+            {
+              association: "customer",
+              attributes: ["id", "name"],
+            },
+          ],
+        },
       ],
     });
 
-    res.status(200).json({ staff });
+    return res.status(200).json({ staff: staffProfiles }); // ✅ return staff key
   } catch (error) {
-    console.log(error);
-    res.status(500).json({ message: "Internal server error" });
+    console.error(error);
+    return res.status(500).json({ message: "Internal server error" });
   }
 };
 

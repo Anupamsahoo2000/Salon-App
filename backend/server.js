@@ -10,6 +10,9 @@ const PORT = process.env.PORT || 3000;
 // Middleware
 app.use(express.json());
 app.use(cors());
+const path = require("path");
+// Serve static files from frontend
+app.use(express.static(path.join(__dirname, "../frontend")));
 
 // Routes
 const authRoutes = require("./routes/authRoutes");

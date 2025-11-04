@@ -7,6 +7,7 @@ const Service = require("./serviceModel");
 const StaffService = require("./staffServiceModel");
 const Appointment = require("./appointmentModel");
 const Review = require("./reviewModel");
+const Payment = require("./paymentModel");
 
 // ------------------------------------
 // ✅ Associations Setup
@@ -45,7 +46,6 @@ Appointment.belongsTo(User, {
   as: "customer",
 });
 
-// Staff ↔ Appointment
 StaffProfile.hasMany(Appointment, {
   foreignKey: "staffProfileId",
   as: "staffAppointments",
@@ -55,7 +55,6 @@ Appointment.belongsTo(StaffProfile, {
   as: "staff",
 });
 
-// Service ↔ Appointment
 Service.hasMany(Appointment, {
   foreignKey: "serviceId",
   as: "serviceAppointments",
@@ -65,7 +64,7 @@ Appointment.belongsTo(Service, {
   as: "service",
 });
 
-// Review Associations
+// ✅ Reviews
 Review.belongsTo(User, { foreignKey: "customerId" });
 Review.belongsTo(Service, { foreignKey: "serviceId" });
 Review.belongsTo(Appointment, { foreignKey: "appointmentId" });
@@ -74,8 +73,15 @@ User.hasMany(Review, { foreignKey: "customerId" });
 Service.hasMany(Review, { foreignKey: "serviceId" });
 Appointment.hasOne(Review, { foreignKey: "appointmentId" });
 
+// ✅ Payment Associations
+Payment.belongsTo(Appointment, { foreignKey: "appointmentId" });
+Payment.belongsTo(User, { foreignKey: "userId" });
+
+Appointment.hasOne(Payment, { foreignKey: "appointmentId" });
+User.hasMany(Payment, { foreignKey: "userId" });
+
 // ------------------------------------
-// ✅ Export Everything from One Place
+// ✅ Export Everything including Payment
 // ------------------------------------
 module.exports = {
   User,
@@ -84,4 +90,5 @@ module.exports = {
   StaffService,
   Appointment,
   Review,
+  Payment,
 };

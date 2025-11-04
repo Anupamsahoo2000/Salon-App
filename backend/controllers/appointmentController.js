@@ -2,7 +2,6 @@ const { Appointment, StaffProfile, Service, User } = require("../models");
 const { Op } = require("sequelize");
 const { sendEmail } = require("../utils/email");
 
-// ✅ Utility: generate time slots
 const generateSlots = (start, end, duration) => {
   const slots = [];
   let current = new Date(start);
@@ -15,39 +14,34 @@ const generateSlots = (start, end, duration) => {
   return slots;
 };
 
-// ✅ Get available slots for staff on a selected date
 const getAvailableSlots = async (req, res) => {
   try {
     const { staffProfileId, serviceId, date } = req.query;
-    if (!staffProfileId || !serviceId || !date) {
-      return res.status(400).json({ message: "Missing required parameters" });
-    }
 
-    const service = await Service.findByPk(serviceId);
-    if (!service) return res.status(404).json({ message: "Service not found" });
+    if (!staffProfileId || !serviceId || !date)
+      return res.status(400).json({ message: "Missing required parameters" });
 
     const staff = await StaffProfile.findByPk(staffProfileId);
     if (!staff) return res.status(404).json({ message: "Staff not found" });
 
-    const day = new Date(date).toLocaleDateString("en-US", {
-      weekday: "lowercase",
-    });
+    const service = await Service.findByPk(serviceId);
+    if (!service) return res.status(404).json({ message: "Service not found" });
+
+    const day = new Date(date)
+      .toLocaleString("en-US", { weekday: "long" })
+      .toLowerCase();
 
     const workingHours = staff.workingHours?.[day];
-
-    if (!workingHours) {
-      return res.status(200).json({ availableSlots: [] }); // Not working that day
-    }
+    if (!workingHours) return res.status(200).json({ availableSlots: [] });
 
     const [startTime, endTime] = workingHours.split("-");
-    const start = new Date(`${date} ${startTime}`);
-    const end = new Date(`${date} ${endTime}`);
 
-    // Generate all possible slots
+    const start = new Date(`${date}T${startTime}:00`);
+    const end = new Date(`${date}T${endTime}:00`);
+
     let allSlots = generateSlots(start, end, service.durationMinutes);
 
-    // Fetch already booked slots
-    const bookedAppointments = await Appointment.findAll({
+    const booked = await Appointment.findAll({
       where: {
         staffProfileId,
         appointmentDate: {
@@ -57,18 +51,17 @@ const getAvailableSlots = async (req, res) => {
       },
     });
 
-    const bookedTimes = bookedAppointments.map((a) =>
+    const bookedTimes = booked.map((a) =>
       new Date(a.appointmentDate).getTime()
     );
 
-    // Filter unavailable slots
     const availableSlots = allSlots.filter(
-      (slot) => !bookedTimes.includes(new Date(slot).getTime())
+      (s) => !bookedTimes.includes(s.getTime())
     );
 
     return res.status(200).json({ availableSlots });
   } catch (error) {
-    console.error("Get Slots Error:", error);
+    console.error("Slots Error:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 };
@@ -77,62 +70,47 @@ const getAvailableSlots = async (req, res) => {
 const bookAppointment = async (req, res) => {
   try {
     const { staffProfileId, serviceId, appointmentDate } = req.body;
-    const customerId = req.user.id;
+    const customerId = req.user.userId;
 
     if (req.user.role !== "customer") {
-      return res
-        .status(403)
-        .json({ message: "Access denied. Customers only." });
+      return res.status(403).json({ message: "Customers only allowed" });
     }
 
     const service = await Service.findByPk(serviceId);
     if (!service) return res.status(404).json({ message: "Service not found" });
 
     const staff = await StaffProfile.findByPk(staffProfileId, {
-      include: [{ model: User, attributes: ["name"] }],
+      include: [{ model: User, as: "user", attributes: ["name"] }],
     });
     if (!staff) return res.status(404).json({ message: "Staff not found" });
 
-    const existing = await Appointment.findOne({
+    // Prevent double bookings
+    const conflict = await Appointment.findOne({
       where: {
         staffProfileId,
         appointmentDate,
         status: "booked",
       },
     });
-    if (existing)
+    if (conflict)
       return res.status(400).json({ message: "Slot already booked" });
 
+    // ✅ Appointment created as PENDING (not booked)
     const appointment = await Appointment.create({
       customerId,
       staffProfileId,
       serviceId,
       appointmentDate,
+      status: "pending",
+      paymentStatus: "pending",
     });
 
-    const customer = await User.findByPk(customerId);
-
-    await sendEmail(
-      customer.email,
-      "Appointment Confirmed ✅",
-      `
-        <h2>Your Appointment is Confirmed ✅</h2>
-        <p><strong>Service:</strong> ${service.name}</p>
-        <p><strong>Date & Time:</strong> ${new Date(
-          appointmentDate
-        ).toLocaleString()}</p>
-        <p><strong>Staff:</strong> ${staff.user.name}</p>
-        <br>
-        <p>Thank you for booking with us!</p>
-      `
-    );
-
     res.status(201).json({
-      message: "Appointment booked",
+      message: "Appointment reserved — pending payment",
       appointment,
     });
   } catch (error) {
-    console.log("Book Appointment Error:", error);
+    console.error("Book Appointment Error:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 };
@@ -140,48 +118,40 @@ const bookAppointment = async (req, res) => {
 // ✅ View My Appointments
 const getMyAppointments = async (req, res) => {
   try {
-    if (req.user.role !== "customer") {
-      return res
-        .status(403)
-        .json({ message: "Access denied. Customers only." });
-    }
-
     const appointments = await Appointment.findAll({
-      where: { customerId: req.user.id },
+      where: { customerId: req.user.userId },
       include: [
-        { model: Service, attributes: ["name", "price"] },
+        { model: Service, as: "service", attributes: ["name", "price"] },
         {
           model: StaffProfile,
-          include: [{ model: User, attributes: ["name"] }],
+          as: "staff",
+          include: [{ model: User, as: "user", attributes: ["name"] }],
         },
       ],
+      order: [["appointmentDate", "DESC"]],
     });
 
     res.status(200).json({ appointments });
-  } catch (error) {
-    console.log("Get Appointments Error:", error);
+  } catch (err) {
+    console.error("Appointments Fetch Error:", err);
     res.status(500).json({ message: "Internal server error" });
   }
 };
 
+// ✅ Cancel Appointment
 const cancelAppointment = async (req, res) => {
   try {
-    const { appointmentId } = req.params;
-    const customerId = req.user.id;
-
-    if (req.user.role !== "customer") {
-      return res
-        .status(403)
-        .json({ message: "Access denied. Customers only." });
-    }
+    const { id } = req.params;
+    const customerId = req.user.userId;
 
     const appointment = await Appointment.findOne({
-      where: { id: appointmentId, customerId, status: "booked" },
+      where: { id, customerId, status: ["pending", "booked"] },
       include: [
-        { model: Service, attributes: ["name"] },
+        { model: Service, as: "service", attributes: ["name"] },
         {
           model: StaffProfile,
-          include: [{ model: User, attributes: ["name"] }],
+          as: "staff",
+          include: [{ model: User, as: "user", attributes: ["name"] }],
         },
       ],
     });
@@ -189,55 +159,49 @@ const cancelAppointment = async (req, res) => {
     if (!appointment)
       return res.status(404).json({ message: "Appointment not found" });
 
-    // Update status
     appointment.status = "cancelled";
     await appointment.save();
 
-    const customer = await User.findByPk(customerId);
-
-    await sendEmail(
-      customer.email,
-      "Appointment Cancelled ❌",
-      `
-      <h2>Your Appointment Has Been Cancelled</h2>
-      <p><strong>Service:</strong> ${appointment.service.name}</p>
-      <p><strong>Originally Scheduled:</strong> ${new Date(
-        appointment.appointmentDate
-      ).toLocaleString()}</p>
-      <br>
-      <p>We hope to assist you again soon!</p>
-      `
-    );
-
     res.status(200).json({ message: "Appointment cancelled successfully" });
   } catch (error) {
-    console.log("Cancel Appointment Error:", error);
+    console.error("Cancel Appointment Error:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 };
 
+// ✅ Reschedule Appointment
 const rescheduleAppointment = async (req, res) => {
   try {
     const { appointmentId } = req.params;
     const { newAppointmentDate } = req.body;
-    const customerId = req.user.id;
 
+    if (!newAppointmentDate)
+      return res.status(400).json({ message: "New appointment date required" });
+
+    const customerId = req.user.userId;
+
+    // ✅ Only the customer who booked can reschedule
     if (req.user.role !== "customer") {
       return res
         .status(403)
         .json({ message: "Access denied. Customers only." });
     }
 
-    if (!newAppointmentDate)
-      return res.status(400).json({ message: "New appointment date required" });
-
     const appointment = await Appointment.findOne({
-      where: { id: appointmentId, customerId, status: "booked" },
+      where: {
+        id: appointmentId,
+        customerId,
+        status: "booked",
+      },
       include: [
-        { model: Service, attributes: ["name", "durationMinutes"] },
         {
           model: StaffProfile,
-          include: [{ model: User, attributes: ["name"] }],
+          as: "staff",
+        },
+        {
+          model: Service,
+          as: "service",
+          attributes: ["durationMinutes"],
         },
       ],
     });
@@ -245,7 +209,7 @@ const rescheduleAppointment = async (req, res) => {
     if (!appointment)
       return res.status(404).json({ message: "Appointment not found" });
 
-    // Prevent booking conflict
+    // ✅ Prevent conflicts
     const conflict = await Appointment.findOne({
       where: {
         staffProfileId: appointment.staffProfileId,
@@ -255,42 +219,116 @@ const rescheduleAppointment = async (req, res) => {
     });
 
     if (conflict)
-      return res.status(400).json({ message: "New slot already booked" });
+      return res.status(400).json({ message: "Slot already booked" });
 
     appointment.appointmentDate = newAppointmentDate;
     await appointment.save();
 
-    const customer = await User.findByPk(customerId);
+    await sendEmail(
+      req.user.email,
+      "Appointment Cancelled ❌",
+      `Your appointment has been cancelled.`
+    );
 
+    return res.status(200).json({
+      message: "Appointment rescheduled successfully ✅",
+      appointment,
+    });
+  } catch (err) {
+    console.error("Reschedule Error:", err);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+// Get Appointment by ID
+const getAppointmentById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const appointment = await Appointment.findByPk(id, {
+      include: [
+        { model: User, as: "customer", attributes: ["id", "name", "email"] },
+        {
+          model: Service,
+          as: "service",
+          attributes: ["id", "name", "price", "durationMinutes"],
+        },
+        {
+          model: StaffProfile,
+          as: "staff",
+          include: [{ model: User, as: "user", attributes: ["id", "name"] }],
+        },
+      ],
+    });
+
+    if (!appointment)
+      return res.status(404).json({ message: "Appointment not found" });
+
+    res.status(200).json({ appointment });
+  } catch (error) {
+    console.error("Get Appointment Error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+const confirmPayment = async (req, res) => {
+  try {
+    const { appointmentId, paymentOrderId } = req.body;
+
+    const appointment = await Appointment.findByPk(appointmentId, {
+      include: [
+        { model: Service, as: "service", attributes: ["name"] },
+        {
+          model: StaffProfile,
+          as: "staff",
+          include: [{ model: User, as: "user", attributes: ["name"] }],
+        },
+      ],
+    });
+
+    if (!appointment)
+      return res.status(404).json({ message: "Appointment not found" });
+
+    // ✅ Mark as successfully booked
+    appointment.status = "booked";
+    appointment.paymentStatus = "success";
+    appointment.paymentOrderId = paymentOrderId;
+    await appointment.save();
+
+    const customer = await User.findByPk(appointment.customerId);
+
+    // ✅ Send confirmation email only after payment success
     await sendEmail(
       customer.email,
-      "Appointment Rescheduled 🔁",
+      "Payment Success ✅ Appointment Confirmed",
       `
-      <h2>Your Appointment Has Been Rescheduled</h2>
+      <h2>Your Appointment is Confirmed ✅</h2>
       <p><strong>Service:</strong> ${appointment.service.name}</p>
-      <p><strong>New Date & Time:</strong> ${new Date(
-        newAppointmentDate
+      <p><strong>Date & Time:</strong> ${new Date(
+        appointment.appointmentDate
       ).toLocaleString()}</p>
-      <p><strong>Assigned Staff:</strong> ${appointment.staff.user.name}</p>
+      <p><strong>Staff:</strong> ${appointment.staff.user.name}</p>
       <br>
-      <p>Looking forward to your visit! 😊</p>
+      <p>Thank you for choosing us! 💖</p>
       `
     );
 
     res.status(200).json({
-      message: "Appointment rescheduled successfully",
+      message: "Payment confirmed & appointment booked",
       appointment,
     });
   } catch (error) {
-    console.log("Reschedule Error:", error);
+    console.error("Confirm Payment Error:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 };
 
 module.exports = {
   getAvailableSlots,
-  getMyAppointments,
   bookAppointment,
+  getMyAppointments,
   cancelAppointment,
   rescheduleAppointment,
+  getAppointmentById,
+  confirmPayment,
 };

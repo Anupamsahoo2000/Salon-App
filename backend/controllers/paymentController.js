@@ -1,86 +1,152 @@
-const { Appointment, Service, User } = require("../models");
+const { Appointment, Payment, User, Service } = require("../models");
 const { Cashfree, CFEnvironment } = require("cashfree-pg");
+require("dotenv").config();
 
 const cashfree = new Cashfree(
-  CFEnvironment.SANDBOX,
+  CFEnvironment.SANDBOX, // Change to PRODUCTION in live mode
   process.env.CASHFREE_APP_ID,
   process.env.CASHFREE_SECRET_KEY
 );
 
+const APP_URL = process.env.APP_URL || "http://localhost:3000";
+
+// ✅ Create Payment Order
 const createPaymentOrder = async (req, res) => {
   try {
     const { appointmentId } = req.body;
-    const userId = req.user.id;
+    const customerId = req.user.userId;
 
     const appointment = await Appointment.findOne({
-      where: { id: appointmentId, customerId: userId },
-      include: [{ model: Service }, { model: User, as: "customer" }],
+      where: { id: appointmentId, customerId },
+      include: [{ model: Service, as: "service" }],
     });
 
-    if (!appointment)
-      return res.status(404).json({ message: "Appointment not found" });
+    if (!appointment) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Appointment not found" });
+    }
 
     const orderId = "ORD_" + Date.now();
 
-    const orderData = {
-      order_amount: Number(appointment.Service.price),
-      order_currency: "INR",
+    const payload = {
       order_id: orderId,
+      order_amount: appointment.service.price,
+      order_currency: "INR",
       customer_details: {
-        customer_id: userId,
-        customer_email: appointment.customer.email,
-        customer_phone: appointment.customer.phone || "9999999999",
+        customer_id: String(customerId),
+        customer_email: req.user.email || "test@example.com",
+        customer_phone: req.user.phone || "9999999999",
       },
       order_meta: {
-        return_url: `${process.env.APP_URL}/payment-success?order_id=${orderId}`,
+        return_url: `${APP_URL}/payment/verify?order_id=${orderId}&appointmentId=${appointmentId}`,
       },
     };
 
-    const cfResponse = await cashfree.orders.create(orderData);
+    const response = await cashfree.PGCreateOrder(payload);
+
+    // ✅ Create Payment Record Initially as Pending
+    await Payment.create({
+      orderId,
+      appointmentId,
+      userId: customerId,
+      amount: appointment.service.price,
+      status: "pending",
+    });
 
     appointment.paymentOrderId = orderId;
     appointment.paymentStatus = "pending";
     await appointment.save();
 
-    return res.status(200).json({
-      message: "Payment order created",
-      orderData: cfResponse.data,
+    return res.json({
+      success: true,
+      paymentSessionId: response.data.payment_session_id,
     });
-  } catch (error) {
-    console.error(
-      "Cashfree Order Error:",
-      error.response?.data || error.message
-    );
-    res.status(500).json({ message: "Payment initiation failed" });
+  } catch (err) {
+    console.error("💥 Create Order Error:", err.response?.data || err.message);
+    return res
+      .status(500)
+      .json({ success: false, message: "Payment initialization failed" });
   }
 };
 
+// ✅ Verify After Redirect
+const verifyPayment = async (req, res) => {
+  try {
+    const { order_id, appointmentId } = req.query;
+
+    const result = await cashfree.PGFetchOrder(order_id);
+    const status = result.data.order_status;
+    const txnId = result.data.cf_order_id || null;
+
+    const payment = await Payment.findOne({ where: { orderId: order_id } });
+    const appointment = await Appointment.findByPk(appointmentId);
+
+    if (!payment || !appointment)
+      return res.redirect(`${APP_URL}/profile.html`);
+
+    if (status === "PAID" || status === "SUCCESS") {
+      payment.status = "success";
+      payment.transactionId = txnId;
+      appointment.paymentStatus = "success";
+      appointment.status = "booked";
+    } else {
+      payment.status = "failed";
+      appointment.paymentStatus = "failed";
+      appointment.status = "cancelled";
+    }
+
+    await payment.save();
+    await appointment.save();
+
+    return res.redirect(`${APP_URL}/profile.html`);
+  } catch (err) {
+    console.error("💥 Verify Error:", err);
+    return res.status(500).send("Payment verification failed");
+  }
+};
+
+// ✅ Webhook → Auto Update DB (Highly Recommended)
 const paymentWebhook = async (req, res) => {
   try {
     const event = req.body;
 
-    const { order_id, order_status } = event.data;
+    const orderId = event?.data?.order?.order_id;
+    const status = event?.data?.order?.order_status;
+    const txnId = event?.data?.payment?.cf_payment_id || null;
 
-    const appointment = await Appointment.findOne({
-      where: { paymentOrderId: order_id },
-      include: [{ model: Service }, { model: User, as: "customer" }],
-    });
+    if (!orderId) return res.sendStatus(200);
 
+    const payment = await Payment.findOne({ where: { orderId } });
+    if (!payment) return res.sendStatus(200);
+
+    const appointment = await Appointment.findByPk(payment.appointmentId);
     if (!appointment) return res.sendStatus(200);
 
-    if (order_status === "PAID") {
+    if (status === "PAID" || status === "SUCCESS") {
+      payment.status = "success";
+      payment.transactionId = txnId;
       appointment.paymentStatus = "success";
       appointment.status = "booked";
     } else {
+      payment.status = "failed";
       appointment.paymentStatus = "failed";
+      appointment.status = "cancelled";
     }
 
+    await payment.save();
     await appointment.save();
-    return res.sendStatus(200); // ✅ Acknowledge webhook
-  } catch (error) {
-    console.error("Webhook error:", error);
+    console.log("✅ Webhook updated payment + appointment");
+
+    return res.sendStatus(200);
+  } catch (err) {
+    console.error("💥 Webhook Error:", err);
     return res.sendStatus(200);
   }
 };
 
-module.exports = { createPaymentOrder, paymentWebhook };
+module.exports = {
+  createPaymentOrder,
+  verifyPayment,
+  paymentWebhook,
+};
