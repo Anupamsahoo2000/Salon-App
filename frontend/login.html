@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Salonly - Login</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  </head>
+
+  <body
+    class="bg-gradient-to-r from-pink-400 to-purple-500 h-screen flex justify-center items-center"
+  >
+    <div
+      class="bg-white/90 backdrop-blur-md p-8 rounded-2xl shadow-lg w-full max-w-md transition-all"
+    >
+      <h2
+        id="formTitle"
+        class="text-3xl font-bold text-center text-pink-600 mb-6"
+      >
+        Welcome Back
+      </h2>
+
+      <!-- LOGIN FORM -->
+      <div id="loginForm">
+        <input
+          id="email"
+          type="email"
+          placeholder="Email"
+          class="w-full p-3 mb-3 border rounded-lg focus:ring-2 focus:ring-pink-500 outline-none"
+        />
+
+        <div class="relative">
+          <input
+            id="password"
+            type="password"
+            placeholder="Password"
+            class="w-full p-3 mb-4 border rounded-lg focus:ring-2 focus:ring-pink-500 outline-none"
+          />
+        </div>
+
+        <button
+          onclick="login()"
+          class="w-full bg-pink-600 hover:bg-pink-700 text-white py-3 rounded-lg font-semibold transition"
+        >
+          Login
+        </button>
+
+        <p class="text-center mt-4 text-sm">
+          New here?
+          <button
+            onclick="toggleForm()"
+            class="text-pink-600 font-semibold hover:underline"
+          >
+            Create an account
+          </button>
+        </p>
+      </div>
+
+      <!-- REGISTER FORM -->
+      <div
+        id="signupForm"
+        class="hidden opacity-0 transition-opacity duration-300"
+      >
+        <input
+          id="regName"
+          type="text"
+          placeholder="Name"
+          class="w-full p-3 mb-3 border rounded-lg focus:ring-2 focus:ring-pink-500 outline-none"
+        />
+        <input
+          id="regEmail"
+          type="email"
+          placeholder="Email"
+          class="w-full p-3 mb-3 border rounded-lg focus:ring-2 focus:ring-pink-500 outline-none"
+        />
+        <input
+          id="regPassword"
+          type="password"
+          placeholder="Password"
+          class="w-full p-3 mb-3 border rounded-lg focus:ring-2 focus:ring-pink-500 outline-none"
+        />
+        <input
+          id="regPhone"
+          type="text"
+          placeholder="Phone"
+          class="w-full p-3 mb-4 border rounded-lg focus:ring-2 focus:ring-pink-500 outline-none"
+        />
+
+        <button
+          onclick="signup()"
+          class="w-full bg-purple-600 hover:bg-purple-700 text-white py-3 rounded-lg font-semibold transition"
+        >
+          Register
+        </button>
+
+        <p class="text-center mt-4 text-sm">
+          Already have an account?
+          <button
+            onclick="toggleForm()"
+            class="text-pink-600 font-semibold hover:underline"
+          >
+            Login here
+          </button>
+        </p>
+      </div>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script src="js/login.js"></script>
+
+    <script>
+      const loginForm = document.getElementById("loginForm");
+      const signupForm = document.getElementById("signupForm");
+      const formTitle = document.getElementById("formTitle");
+
+      function toggleForm() {
+        if (signupForm.classList.contains("hidden")) {
+          loginForm.classList.add("hidden");
+          signupForm.classList.remove("hidden");
+
+          setTimeout(() => signupForm.classList.remove("opacity-0"), 10);
+
+          formTitle.innerText = "Create Account";
+        } else {
+          signupForm.classList.add("opacity-0");
+          setTimeout(() => signupForm.classList.add("hidden"), 300);
+
+          loginForm.classList.remove("hidden");
+          formTitle.innerText = "Welcome Back";
+        }
+      }
+    </script>
+  </body>
+</html>

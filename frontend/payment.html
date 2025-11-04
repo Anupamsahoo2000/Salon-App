@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Payment — Salonly</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script>
+      tailwind.config = {
+        darkMode: "class",
+      };
+    </script>
+  </head>
+  <body class="bg-gray-50 min-h-screen">
+    <header
+      class="bg-white dark:bg-gray-900 shadow-sm sticky top-0 z-40 text-gray-800 dark:text-gray-100"
+    >
+      <div
+        class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between"
+      >
+        <div class="flex items-center gap-4">
+          <a href="index.html" class="text-2xl font-bold text-pink-600"
+            >Salonly</a
+          >
+        </div>
+
+        <nav class="flex items-center gap-3">
+          <a href="index.html" class="nav-link px-3 py-2 rounded-lg">Home</a>
+          <a href="service.html" class="nav-link px-3 py-2 rounded-lg"
+            >Services</a
+          >
+          <a href="booking.html" class="nav-link px-3 py-2 rounded-lg"
+            >Booking</a
+          >
+          <a
+            href="profile.html"
+            id="profileLink"
+            class="nav-link px-3 py-2 rounded-lg hidden"
+            >Profile</a
+          >
+          <a
+            href="admin.html"
+            id="adminLink"
+            class="nav-link px-3 py-2 rounded-lg hidden"
+            >Admin</a
+          >
+          <a
+            href="staff.html"
+            id="staffLink"
+            class="nav-link px-3 py-2 rounded-lg hidden"
+            >Staff</a
+          >
+
+          <button
+            id="themeBtn"
+            class="ml-2 px-3 py-2 rounded-lg bg-pink-50 text-pink-600"
+          >
+            🌓
+          </button>
+          <button
+            id="logoutBtn"
+            class="ml-2 px-3 py-2 rounded-lg bg-red-500 text-white hidden"
+          >
+            Logout
+          </button>
+        </nav>
+      </div>
+    </header>
+    <script>
+      // small runtime to show/hide links based on role/token
+      (function () {
+        const token = localStorage.getItem("token");
+        const role = localStorage.getItem("role");
+        if (token) {
+          document.getElementById("profileLink").classList.remove("hidden");
+          document.getElementById("logoutBtn").classList.remove("hidden");
+        }
+        if (role === "admin")
+          document.getElementById("adminLink").classList.remove("hidden");
+        if (role === "staff")
+          document.getElementById("staffLink").classList.remove("hidden");
+
+        // theme toggle
+        const themeBtn = document.getElementById("themeBtn");
+        themeBtn.onclick = () => {
+          document.documentElement.classList.toggle("dark");
+          localStorage.setItem(
+            "theme",
+            document.documentElement.classList.contains("dark")
+              ? "dark"
+              : "light"
+          );
+        };
+        // apply saved theme
+        if (localStorage.getItem("theme") === "dark")
+          document.documentElement.classList.add("dark");
+
+        document.getElementById("logoutBtn").onclick = () => {
+          localStorage.removeItem("token");
+          localStorage.removeItem("role");
+          localStorage.removeItem("user");
+          window.location.href = "login.html";
+        };
+      })();
+    </script>
+
+    <main class="max-w-2xl mx-auto p-6">
+      <h2 class="text-xl font-bold text-pink-600 mb-4">Payment</h2>
+      <div id="paymentInfo" class="bg-white p-4 rounded-lg shadow"></div>
+      <div class="mt-4 flex gap-3">
+        <button id="payBtn" class="bg-pink-600 text-white px-4 py-2 rounded-lg">
+          Pay Now
+        </button>
+        <a id="payLater" class="px-4 py-2 border rounded-lg">Pay Later</a>
+      </div>
+    </main>
+
+    <script src="./js/api.js"></script>
+    <script src="https://sdk.cashfree.com/js/v3/cashfree.js"></script>
+    <script src="./js/payment.js"></script>
+  </body>
+</html>

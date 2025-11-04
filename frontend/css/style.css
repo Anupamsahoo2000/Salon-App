@@ -1,0 +1,19 @@
+    .sidebar {
+        width: 260px;
+        min-width: 260px;
+      }
+      .content {
+        flex: 1;
+      }
+      .glass {
+        background: rgba(255, 255, 255, 0.7);
+        backdrop-filter: blur(8px);
+      }
+      .clickable {
+        cursor: pointer;
+      }
+      /* active nav */
+      .nav-active {
+        background: linear-gradient(90deg, #7c3aed, #06b6d4);
+        color: white;
+      }

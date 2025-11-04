@@ -1,83 +1,306 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
   <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Salon Admin Dashboard</title>
-
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Admin — Salonly</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script>
+      tailwind.config = { darkMode: "class" };
+    </script>
   </head>
-  <body class="bg-gray-100">
-    <!-- NAV -->
-    <nav class="bg-white shadow">
+  <body class="bg-gray-50 min-h-screen">
+    <header
+      class="bg-white dark:bg-gray-900 shadow-sm sticky top-0 z-40 text-gray-800 dark:text-gray-100"
+    >
       <div
-        class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center"
+        class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between"
       >
-        <h1 class="text-xl font-bold text-indigo-600">Salon Admin Panel</h1>
-        <button id="logoutBtn" class="text-red-500 font-medium hover:underline">
-          Logout
-        </button>
+        <div class="flex items-center gap-4">
+          <a href="index.html" class="text-2xl font-bold text-pink-600"
+            >Salonly</a
+          >
+        </div>
+
+        <nav class="flex items-center gap-3">
+          <a href="index.html" class="nav-link px-3 py-2 rounded-lg">Home</a>
+          <a href="service.html" class="nav-link px-3 py-2 rounded-lg"
+            >Services</a
+          >
+          <a href="booking.html" class="nav-link px-3 py-2 rounded-lg"
+            >Booking</a
+          >
+          <a
+            href="profile.html"
+            id="profileLink"
+            class="nav-link px-3 py-2 rounded-lg hidden"
+            >Profile</a
+          >
+          <a
+            href="admin.html"
+            id="adminLink"
+            class="nav-link px-3 py-2 rounded-lg hidden"
+            >Admin</a
+          >
+          <a
+            href="staff.html"
+            id="staffLink"
+            class="nav-link px-3 py-2 rounded-lg hidden"
+            >Staff</a
+          >
+
+          <button
+            id="themeBtn"
+            class="ml-2 px-3 py-2 rounded-lg bg-pink-50 text-pink-600"
+          >
+            🌓
+          </button>
+          <button
+            id="logoutBtn"
+            class="ml-2 px-3 py-2 rounded-lg bg-red-500 text-white hidden"
+          >
+            Logout
+          </button>
+        </nav>
       </div>
-    </nav>
+    </header>
 
-    <main class="max-w-7xl mx-auto p-6">
-      <!-- Sections Tabs -->
-      <div class="flex gap-4 mb-6">
-        <button
-          id="tab-users"
-          class="admin-tab px-4 py-2 bg-indigo-600 text-white rounded-lg shadow"
-        >
-          Users
-        </button>
-        <button
-          id="tab-appointments"
-          class="admin-tab px-4 py-2 bg-gray-300 rounded-lg shadow"
-        >
-          Appointments
-        </button>
+    <main class="max-w-6xl mx-auto p-6">
+      <div class="flex items-center justify-between mb-4">
+        <h1 class="text-2xl font-bold text-pink-600">Admin Dashboard</h1>
+
+        <!-- Search + Filter -->
+        <div class="flex gap-3 items-center">
+          <input
+            id="adminSearch"
+            type="search"
+            placeholder="Search (customers, services, staff)"
+            class="px-3 py-2 border rounded-lg w-64"
+          />
+          <select id="entityFilter" class="px-3 py-2 border rounded-lg">
+            <option value="all">All</option>
+            <option value="customers">Customers</option>
+            <option value="appointments">Appointments</option>
+            <option value="services">Services</option>
+            <option value="staff">Staff</option>
+            <option value="payments">Payments</option>
+          </select>
+          <button
+            id="refreshBtn"
+            class="px-3 py-2 bg-indigo-600 text-white rounded-lg"
+          >
+            Refresh
+          </button>
+        </div>
       </div>
 
-      <!-- USERS SECTION -->
-      <section id="admin-users" class="section bg-white p-6 rounded-lg shadow">
-        <h2 class="text-lg font-semibold mb-4">Customer Management</h2>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+        <div class="bg-white p-4 rounded-lg shadow">
+          <div class="text-gray-500">Customers</div>
+          <div id="custCount" class="text-2xl font-bold">—</div>
+        </div>
+        <div class="bg-white p-4 rounded-lg shadow">
+          <div class="text-gray-500">Appointments</div>
+          <div id="apptCount" class="text-2xl font-bold">—</div>
+        </div>
+        <div class="bg-white p-4 rounded-lg shadow">
+          <div class="text-gray-500">Services</div>
+          <div id="svcCount" class="text-2xl font-bold">—</div>
+        </div>
+      </div>
 
-        <table class="w-full text-sm">
-          <thead class="bg-gray-200">
-            <tr>
-              <th class="p-2 text-left">Name</th>
-              <th class="p-2 text-left">Email</th>
-              <th class="p-2 text-left">Role</th>
-              <th class="p-2 text-center">Actions</th>
-            </tr>
-          </thead>
-          <tbody id="users-table"></tbody>
-        </table>
-      </section>
+      <!-- Tabs -->
+      <div class="mb-4">
+        <nav class="flex gap-2">
+          <button
+            data-tab="appointments"
+            class="tabBtn px-4 py-2 bg-white rounded shadow"
+          >
+            Appointments
+          </button>
+          <button
+            data-tab="customers"
+            class="tabBtn px-4 py-2 bg-white rounded shadow"
+          >
+            Customers
+          </button>
+          <button
+            data-tab="services"
+            class="tabBtn px-4 py-2 bg-white rounded shadow"
+          >
+            Services
+          </button>
+          <button
+            data-tab="staff"
+            class="tabBtn px-4 py-2 bg-white rounded shadow"
+          >
+            Staff
+          </button>
+          <button
+            data-tab="payments"
+            class="tabBtn px-4 py-2 bg-white rounded shadow"
+          >
+            Payments
+          </button>
+        </nav>
+      </div>
 
-      <!-- APPOINTMENTS SECTION -->
-      <section
-        id="admin-appointments"
-        class="section hidden bg-white p-6 rounded-lg shadow"
-      >
-        <h2 class="text-lg font-semibold mb-4">Appointment Management</h2>
+      <!-- Admin content area -->
+      <div id="adminArea" class="space-y-4">
+        <div id="adminContent" class=""></div>
 
-        <table class="w-full text-sm">
-          <thead class="bg-gray-200">
-            <tr>
-              <th class="p-2 text-left">Customer</th>
-              <th class="p-2 text-left">Service</th>
-              <th class="p-2 text-left">Staff</th>
-              <th class="p-2 text-left">Date & Time</th>
-              <th class="p-2 text-left">Status</th>
-              <th class="p-2 text-center">Actions</th>
-            </tr>
-          </thead>
-          <tbody id="appointments-table"></tbody>
-        </table>
-      </section>
+        <!-- Pagination -->
+        <div
+          id="pagination"
+          class="flex items-center justify-center gap-2 mt-6"
+        ></div>
+      </div>
     </main>
 
-    <script type="module" src="./js/admin.js"></script>
+    <!-- Staff Add Modal -->
+    <div
+      id="staffModal"
+      class="fixed inset-0 bg-black/40 hidden items-center justify-center z-50"
+    >
+      <div class="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-lg">
+        <h3 class="text-lg font-semibold mb-3">Add Staff</h3>
+        <form id="staffForm" class="space-y-3">
+          <input
+            id="staffName"
+            class="w-full p-2 border rounded"
+            placeholder="Full name"
+            required
+          />
+          <input
+            id="staffEmail"
+            class="w-full p-2 border rounded"
+            placeholder="Email"
+            required
+          />
+          <input
+            id="staffPhone"
+            class="w-full p-2 border rounded"
+            placeholder="Phone"
+          />
+          <input
+            id="staffPassword"
+            class="w-full p-2 border rounded"
+            placeholder="Password"
+            type="password"
+            required
+          />
+          <input
+            id="staffSpecialization"
+            class="w-full p-2 border rounded"
+            placeholder="Specialization"
+          />
+          <div class="flex justify-end gap-2">
+            <button
+              type="button"
+              id="closeStaffModal"
+              class="px-3 py-2 rounded border dark:text-gray-100"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              class="px-3 py-2 bg-green-600 text-white rounded"
+            >
+              Create Staff
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Assign Services Modal -->
+    <div
+      id="assignModal"
+      class="fixed inset-0 bg-black/40 hidden items-center justify-center z-50"
+    >
+      <div class="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-2xl">
+        <h3 class="text-lg font-semibold mb-3">Assign Services to Staff</h3>
+        <div id="assignModalBody" class="space-y-3"></div>
+        <div class="flex justify-end gap-2 mt-4">
+          <button id="closeAssignModal" class="px-3 py-2 rounded border">
+            Cancel
+          </button>
+          <button
+            id="saveAssignBtn"
+            class="px-3 py-2 bg-indigo-600 text-white rounded"
+          >
+            Save
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ✅ Add/Edit Service Modal -->
+    <div
+      id="serviceModal"
+      class="fixed inset-0 bg-black bg-opacity-40 hidden items-center justify-center"
+    >
+      <div
+        class="bg-white dark:bg-gray-800 p-6 rounded-lg w-full max-w-md shadow-xl"
+      >
+        <h2 id="serviceModalTitle" class="text-xl font-bold mb-4 text-pink-600">
+          Add Service
+        </h2>
+
+        <div class="mb-3">
+          <label class="block text-sm font-medium">Service Name</label>
+          <input
+            id="serviceName"
+            type="text"
+            class="w-full p-2 border rounded"
+          />
+        </div>
+
+        <div class="mb-3">
+          <label class="block text-sm font-medium">Description</label>
+          <textarea
+            id="serviceDesc"
+            class="w-full p-2 border rounded"
+          ></textarea>
+        </div>
+
+        <div class="mb-3">
+          <label class="block text-sm font-medium">Duration (Minutes)</label>
+          <input
+            id="serviceDuration"
+            type="number"
+            class="w-full p-2 border rounded"
+          />
+        </div>
+
+        <div class="mb-3">
+          <label class="block text-sm font-medium">Price (₹)</label>
+          <input
+            id="servicePrice"
+            type="number"
+            class="w-full p-2 border rounded"
+          />
+        </div>
+
+        <div class="flex justify-end gap-3">
+          <button
+            id="closeServiceModal"
+            class="px-3 py-1 rounded bg-gray-500 text-white"
+          >
+            Cancel
+          </button>
+          <button
+            id="saveServiceBtn"
+            class="px-3 py-1 rounded bg-pink-600 text-white"
+          >
+            Save
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script src="js/admin.js"></script>
   </body>
 </html>
