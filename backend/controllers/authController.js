@@ -29,7 +29,14 @@ const signup = async (req, res) => {
       await StaffProfile.create({
         userId: newUser.id,
         specialization: "General",
-        workingHours: "10:00 AM - 8:00 PM",
+        workingHours: {
+          monday: "10:00-18:00",
+          tuesday: "10:00-18:00",
+          wednesday: "10:00-18:00",
+          thursday: "10:00-18:00",
+          friday: "10:00-18:00",
+          saturday: "10:00-18:00",
+        },
       });
     }
 

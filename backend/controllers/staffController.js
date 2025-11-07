@@ -11,14 +11,6 @@ const createStaffProfile = async (req, res) => {
     const profile = await StaffProfile.create({
       userId,
       specialization,
-      workingHours: {
-        monday: "10:00-18:00",
-        tuesday: "10:00-18:00",
-        wednesday: "10:00-18:00",
-        thursday: "10:00-18:00",
-        friday: "10:00-18:00",
-        saturday: "10:00-18:00",
-      },
     });
 
     res.status(201).json({ message: "Staff profile created", profile });
