@@ -11,6 +11,20 @@
         darkMode: "class",
       };
     </script>
+
+    <style>
+      .star {
+        cursor: pointer;
+        font-size: 1.5rem;
+        color: #d1d5db;
+        transition: color 0.2s;
+      }
+      input[name="rating"]:checked ~ .star,
+      .star:hover,
+      .star:hover ~ .star {
+        color: #fbbf24;
+      }
+    </style>
   </head>
   <body class="bg-gray-50 min-h-screen">
     <header
@@ -105,10 +119,85 @@
       })();
     </script>
 
-    <main class="max-w-4xl mx-auto p-4">
-      <h1 class="text-2xl font-bold text-pink-600 mb-4">My Appointments</h1>
-      <div id="appointmentsList" class="space-y-4"></div>
+    <main class="max-w-4xl mx-auto p-4 space-y-8">
+      <section>
+        <h1 class="text-2xl font-bold text-pink-600 mb-4">My Appointments</h1>
+        <div id="appointmentsList" class="space-y-4"></div>
+      </section>
+
+      <section>
+        <h2 class="text-2xl font-bold text-pink-600 mb-4">My Reviews</h2>
+        <div id="myReviewsList" class="space-y-4"></div>
+      </section>
     </main>
+
+    <!-- ⭐ Review Modal -->
+    <div
+      id="reviewModal"
+      class="fixed inset-0 bg-black/40 hidden items-center justify-center z-50"
+    >
+      <div
+        class="bg-white dark:bg-gray-800 p-6 rounded-lg w-full max-w-md shadow-xl"
+      >
+        <h3 class="text-lg font-semibold mb-3 text-pink-600">Write a Review</h3>
+        <input type="hidden" id="reviewApptId" />
+
+        <!-- Star Rating -->
+        <div class="flex justify-center gap-1 mb-3">
+          <label
+            ><input type="radio" name="rating" value="1" class="hidden" /><span
+              class="star"
+              >⭐</span
+            ></label
+          >
+          <label
+            ><input type="radio" name="rating" value="2" class="hidden" /><span
+              class="star"
+              >⭐</span
+            ></label
+          >
+          <label
+            ><input type="radio" name="rating" value="3" class="hidden" /><span
+              class="star"
+              >⭐</span
+            ></label
+          >
+          <label
+            ><input type="radio" name="rating" value="4" class="hidden" /><span
+              class="star"
+              >⭐</span
+            ></label
+          >
+          <label
+            ><input type="radio" name="rating" value="5" class="hidden" /><span
+              class="star"
+              >⭐</span
+            ></label
+          >
+        </div>
+
+        <textarea
+          id="reviewComment"
+          placeholder="Share your experience..."
+          class="border rounded w-full p-2 mb-4"
+        ></textarea>
+
+        <div class="flex justify-end gap-2">
+          <button
+            onclick="closeReviewModal()"
+            class="px-3 py-2 bg-gray-500 text-white rounded"
+          >
+            Cancel
+          </button>
+          <button
+            onclick="submitReview()"
+            class="px-3 py-2 bg-pink-600 text-white rounded"
+          >
+            Submit
+          </button>
+        </div>
+      </div>
+    </div>
 
     <script src="./js/api.js"></script>
     <script src="./js/profile.js"></script>

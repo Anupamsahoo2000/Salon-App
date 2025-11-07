@@ -4,7 +4,7 @@ const { Review, Appointment, Service, User } = require("../models");
 const addReview = async (req, res) => {
   try {
     const { appointmentId, rating, comment } = req.body;
-    const customerId = req.user.id;
+    const customerId = req.user.userId;
 
     if (req.user.role !== "customer") {
       return res
@@ -12,9 +12,10 @@ const addReview = async (req, res) => {
         .json({ message: "Access denied. Customers only." });
     }
 
+    // ✅ Must include "as: 'service'" to match your alias in models/index.js
     const appointment = await Appointment.findOne({
       where: { id: appointmentId, customerId },
-      include: [{ model: Service }],
+      include: [{ model: Service, as: "service" }],
     });
 
     if (!appointment)
@@ -23,7 +24,7 @@ const addReview = async (req, res) => {
     if (appointment.status !== "completed")
       return res
         .status(400)
-        .json({ message: "Review allowed after completion only" });
+        .json({ message: "Review allowed only after completion" });
 
     // ✅ Prevent duplicate review
     const exists = await Review.findOne({ where: { appointmentId } });
@@ -38,9 +39,9 @@ const addReview = async (req, res) => {
       appointmentId,
     });
 
-    res.status(201).json({ message: "Review added", review });
+    res.status(201).json({ message: "Review added successfully ✅", review });
   } catch (error) {
-    console.log("Add Review Error:", error);
+    console.error("💥 Add Review Error:", error);
     res.status(500).json({ message: "Internal Server Error" });
   }
 };
@@ -88,4 +89,62 @@ const getServiceReviews = async (req, res) => {
   }
 };
 
-module.exports = { addReview, respondToReview, getServiceReviews };
+// ✅ Admin: Get All Reviews (All services)
+const getAllReviews = async (req, res) => {
+  try {
+    const reviews = await Review.findAll({
+      include: [
+        { model: User, attributes: ["name"] },
+        { model: Service, attributes: ["name"] },
+      ],
+      order: [["createdAt", "DESC"]],
+    });
+
+    res.status(200).json({ reviews });
+  } catch (error) {
+    console.error("Get All Reviews Error:", error);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+};
+
+// ✅ Admin: Delete Review
+const deleteReview = async (req, res) => {
+  try {
+    const { id } = req.params;
+    await Review.destroy({ where: { id } });
+    res.status(200).json({ message: "Review deleted" });
+  } catch (error) {
+    console.error("Delete Review Error:", error);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+};
+
+// ✅ Get all reviews written by logged-in customer
+const getMyReviews = async (req, res) => {
+  try {
+    const customerId = req.user.userId;
+
+    const reviews = await Review.findAll({
+      where: { customerId },
+      include: [
+        { model: Service, attributes: ["name"], as: "service" },
+        { model: Appointment, attributes: ["appointmentDate", "status"] },
+      ],
+      order: [["createdAt", "DESC"]],
+    });
+
+    res.status(200).json({ reviews });
+  } catch (error) {
+    console.error("💥 Get My Reviews Error:", error);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+};
+
+module.exports = {
+  addReview,
+  respondToReview,
+  getServiceReviews,
+  getAllReviews,
+  deleteReview,
+  getMyReviews,
+};

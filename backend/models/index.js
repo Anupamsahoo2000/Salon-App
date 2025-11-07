@@ -66,7 +66,7 @@ Appointment.belongsTo(Service, {
 
 // ✅ Reviews
 Review.belongsTo(User, { foreignKey: "customerId" });
-Review.belongsTo(Service, { foreignKey: "serviceId" });
+Review.belongsTo(Service, { foreignKey: "serviceId", as: "service" });
 Review.belongsTo(Appointment, { foreignKey: "appointmentId" });
 
 User.hasMany(Review, { foreignKey: "customerId" });

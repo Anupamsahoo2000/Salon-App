@@ -156,15 +156,10 @@ async function initAdmin() {
 
       const signupRes = await api.post("/auth/signup", body);
 
-      const newUser = signupRes.data.user;
+      const newUser = signupRes.data.response;
       if (!newUser || !newUser.id) {
         throw new Error("Signup succeeded but user id missing");
       }
-
-      const staffProfileRes = await api.post("/staff/create-profile", {
-        userId: newUser.id,
-        specialization: qs("#staffSpecialization").value.trim() || "General",
-      });
 
       alert("✅ Staff created successfully!");
       hideModal("#staffModal");
@@ -248,6 +243,7 @@ async function initAdmin() {
     if (currentTab === "services") return loadServices(q);
     if (currentTab === "staff") return loadStaff(q);
     if (currentTab === "payments") return loadPayments(q);
+    if (currentTab === "reviews") return loadReviews(q);
   }
 
   // ----- helpers -----
@@ -606,6 +602,107 @@ async function initAdmin() {
     } catch (err) {
       console.error(err);
       adminContent.innerHTML = `<div class="text-red-600">Failed to load staff</div>`;
+    }
+  }
+
+  // ✅ Load Reviews (Admin)
+  async function loadReviews(q) {
+    adminContent.innerHTML = "Loading reviews...";
+    try {
+      // Fetch all reviews (Admin route)
+      const res = await api.get("/reviews/all");
+      const reviews = Array.isArray(res.data.reviews) ? res.data.reviews : [];
+
+      // Filter results by query (optional search)
+      const filtered = q
+        ? reviews.filter((r) =>
+            [r.comment, r.User?.name, r.Service?.name, r.staffResponse]
+              .join(" ")
+              .toLowerCase()
+              .includes(q.toLowerCase())
+          )
+        : reviews;
+
+      if (filtered.length === 0) {
+        adminContent.innerHTML = `<div class="text-gray-500">No reviews found.</div>`;
+        return;
+      }
+
+      adminContent.innerHTML = `
+      <div class="flex justify-between items-center mb-3">
+        <h2 class="text-lg font-semibold">Reviews (${filtered.length})</h2>
+      </div>
+
+      <div class="space-y-3">
+        ${filtered
+          .map(
+            (r) => `
+          <div class="bg-white p-4 rounded-lg shadow border border-gray-100">
+            <div class="flex justify-between">
+              <div>
+                <div class="font-semibold">${r.User?.name || "Anonymous"}</div>
+                <div class="text-sm text-gray-500">⭐ ${r.rating}/5 — ${
+              r.Service?.name || "Unknown Service"
+            }</div>
+              </div>
+              <div class="text-xs text-gray-400">${new Date(
+                r.createdAt
+              ).toLocaleString()}</div>
+            </div>
+
+            <p class="mt-2 text-gray-700">${r.comment}</p>
+
+            ${
+              r.staffResponse
+                ? `<div class="mt-3 text-sm bg-gray-100 p-2 rounded"><strong>Staff Response:</strong> ${r.staffResponse}</div>`
+                : `<div class="mt-3 flex items-center gap-2">
+                    <textarea id="resp-${r.id}" placeholder="Write response..." class="border p-2 rounded w-full"></textarea>
+                    <button onclick="respondToReview('${r.id}')" class="bg-indigo-600 text-white px-3 py-1 rounded">Respond</button>
+                  </div>`
+            }
+
+            <div class="flex justify-end gap-2 mt-3">
+              <button onclick="deleteReview('${
+                r.id
+              }')" class="px-3 py-1 bg-red-500 text-white rounded">Delete</button>
+            </div>
+          </div>`
+          )
+          .join("")}
+      </div>
+    `;
+    } catch (err) {
+      console.error("Load reviews error:", err);
+      adminContent.innerHTML = `<div class="text-red-600">Failed to load reviews</div>`;
+    }
+  }
+
+  // ✅ Respond to Review (Admin/Staff)
+  async function respondToReview(reviewId) {
+    const response = document.getElementById(`resp-${reviewId}`).value.trim();
+    if (!response) return alert("Please write a response first.");
+
+    try {
+      await api.put(`/reviews/${reviewId}/respond`, { response });
+      alert("Response added successfully!");
+      updateView();
+    } catch (err) {
+      console.error("Respond error:", err);
+      alert(err.response?.data?.message || "Failed to respond");
+    }
+  }
+
+  // ✅ Delete Review (Admin)
+  async function deleteReview(reviewId) {
+    if (!confirm("Are you sure you want to delete this review?")) return;
+
+    try {
+      await api.delete(`/reviews/${reviewId}`);
+      alert("Review deleted successfully!");
+      updateView();
+    } catch (err) {
+      console.error("Delete error:", err);
+      alert("Failed to delete review");
     }
   }
 
